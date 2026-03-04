@@ -1,5 +1,5 @@
 export type Difficulty = 'Principiante' | 'Intermedio' | 'Avanzado';
-export type Category = 'Fuerza' | 'Cardio' | 'Todos';
+export type Category = 'Fuerza' | 'Cardio' | 'Golf' | 'Fútbol' | 'Tenis' | 'Todos';
 
 export interface Exercise {
   id: string;
@@ -10,6 +10,7 @@ export interface Exercise {
   weight?: number;
   muscleGroup: string;
   image: string;
+  description?: string;
 }
 
 export interface WorkoutTemplate {
@@ -56,4 +57,5 @@ export interface AppState {
   profile: UserProfile;
   history: WorkoutSession[];
   activeSession: WorkoutSession | null;
+  templates: WorkoutTemplate[];
 }

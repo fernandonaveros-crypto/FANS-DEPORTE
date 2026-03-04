@@ -12,13 +12,17 @@ import { WORKOUT_TEMPLATES } from './data';
 import { WorkoutTemplate } from './types';
 
 const AppContent: React.FC = () => {
-  const { profile } = useApp();
+  const { profile, templates, activeSession, setActiveSession } = useApp();
   const [activeTab, setActiveTab] = useState<'inicio' | 'entrenos' | 'historial' | 'perfil'>('inicio');
-  const [quickStartWorkout, setQuickStartWorkout] = useState<WorkoutTemplate | null>(null);
 
   if (!profile.onboarded) {
     return <Onboarding />;
   }
+
+  const activeTemplate = activeSession 
+    ? templates.find(t => t.id === activeSession.templateId) 
+    || templates.find(t => t.name === activeSession.name) // Fallback to name if ID fails
+    : null;
 
   return (
     <div className="min-h-screen bg-bg-dark text-white pb-24">
@@ -28,8 +32,25 @@ const AppContent: React.FC = () => {
           <Home 
             onNavigateToWorkouts={() => setActiveTab('entrenos')} 
             onStartWorkout={(id) => {
-              const workout = WORKOUT_TEMPLATES.find(w => w.id === id);
-              if (workout) setQuickStartWorkout(workout);
+              const workout = templates.find(w => w.id === id);
+              if (workout) {
+                setActiveSession({
+                  id: Math.random().toString(36).substr(2, 9),
+                  templateId: workout.id,
+                  name: workout.name,
+                  startTime: Date.now(),
+                  duration: 0,
+                  exercises: workout.exercises.map(ex => ({
+                    exerciseId: ex.id,
+                    name: ex.name,
+                    sets: Array.from({ length: ex.sets }).map(() => ({
+                      reps: parseInt(ex.reps) || 10,
+                      weight: 0,
+                      completed: false
+                    }))
+                  }))
+                });
+              }
             }}
           />
         )}
@@ -68,11 +89,11 @@ const AppContent: React.FC = () => {
         </div>
       </nav>
 
-      {/* Quick Start Session Modal */}
-      {quickStartWorkout && (
+      {/* Active Session Modal */}
+      {activeSession && activeTemplate && (
         <ActiveSession
-          template={quickStartWorkout}
-          onClose={() => setQuickStartWorkout(null)}
+          template={activeTemplate}
+          onClose={() => setActiveSession(null)}
         />
       )}
     </div>
@@ -88,12 +109,20 @@ const TabButton: React.FC<{
   <button
     onClick={onClick}
     className={cn(
-      "flex flex-col items-center gap-1 transition-all",
-      active ? "text-brand" : "text-gray-500"
+      "flex flex-col items-center gap-1.5 transition-all duration-300",
+      active ? "text-brand scale-110" : "text-gray-500 hover:text-gray-400"
     )}
   >
-    {icon}
-    <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+    <div className={cn(
+      "p-2 rounded-xl transition-colors",
+      active ? "bg-brand/10" : "bg-transparent"
+    )}>
+      {React.cloneElement(icon as React.ReactElement<any>, { size: 26 })}
+    </div>
+    <span className={cn(
+      "text-[10px] font-bold uppercase tracking-wider",
+      active ? "opacity-100" : "opacity-60"
+    )}>{label}</span>
   </button>
 );
 

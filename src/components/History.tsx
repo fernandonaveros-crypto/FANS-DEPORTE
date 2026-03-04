@@ -3,7 +3,8 @@ import { useApp } from '../store';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Clock, Dumbbell, Weight, Calendar } from 'lucide-react';
-import { formatDuration } from '../utils';
+import { formatDuration, cn } from '../utils';
+import { motion } from 'motion/react';
 
 export const History: React.FC = () => {
   const { history } = useApp();
@@ -24,13 +25,34 @@ export const History: React.FC = () => {
     <div className="p-6 pb-24 space-y-8">
       <h1 className="text-4xl font-bold">Historial</h1>
 
+      {/* History Summary Stats */}
+      {(() => {
+        const totalWorkouts = history.length;
+        const totalSets = history.reduce((acc, s) => acc + s.exercises.reduce((eAcc, ex) => eAcc + ex.sets.length, 0), 0);
+        const completedSets = history.reduce((acc, s) => acc + s.exercises.reduce((eAcc, ex) => eAcc + ex.sets.filter(set => set.completed).length, 0), 0);
+        const overallCompletion = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+        
+        return (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-card-dark p-5 rounded-[2rem] border border-white/5 flex flex-col items-center justify-center space-y-2">
+              <span className="text-3xl font-bold text-brand">{overallCompletion}%</span>
+              <span className="text-[10px] text-gray-500 uppercase font-bold text-center">Efectividad total</span>
+            </div>
+            <div className="bg-card-dark p-5 rounded-[2rem] border border-white/5 flex flex-col items-center justify-center space-y-2">
+              <span className="text-3xl font-bold text-blue-500">{totalWorkouts}</span>
+              <span className="text-[10px] text-gray-500 uppercase font-bold text-center">Sesiones</span>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="space-y-6">
         {history.map((session) => (
           <div key={session.id} className="space-y-3">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">
               {format(session.startTime, "EEEE, d 'de' MMMM", { locale: es })}
             </h3>
-            <div className="bg-card-dark rounded-3xl p-5 space-y-4">
+            <div className="bg-card-dark rounded-3xl p-5 space-y-4 border border-white/5 shadow-xl">
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="text-xl font-bold">{session.name}</h4>
@@ -39,9 +61,29 @@ export const History: React.FC = () => {
                     <span>{formatDuration(session.duration)}</span>
                   </div>
                 </div>
-                <div className="bg-brand/10 text-brand px-3 py-1 rounded-lg text-xs font-bold">
-                  Completado
-                </div>
+                {(() => {
+                  const totalSets = session.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+                  const completedSets = session.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0);
+                  const percentage = Math.round((completedSets / totalSets) * 100);
+                  
+                  return (
+                    <div className="flex flex-col items-end gap-2">
+                      <div className={cn(
+                        "px-3 py-1 rounded-lg text-xs font-bold",
+                        percentage === 100 ? "bg-brand/20 text-brand" : "bg-orange-500/20 text-orange-500"
+                      )}>
+                        {percentage === 100 ? 'Completado' : `${percentage}%`}
+                      </div>
+                      <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          className={cn("h-full", percentage === 100 ? "bg-brand" : "bg-orange-500")}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-3 gap-4 pt-2 border-t border-white/5">

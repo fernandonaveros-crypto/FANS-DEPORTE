@@ -12,7 +12,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ onNavigateToWorkouts, onStartWorkout }) => {
-  const { profile, history } = useApp();
+  const { profile, history, templates } = useApp();
   const greeting = getGreeting();
 
   const lastWorkout = history[0];
@@ -69,39 +69,48 @@ export const Home: React.FC<HomeProps> = ({ onNavigateToWorkouts, onStartWorkout
 
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={<Flame className="text-orange-500" />} value={streak} label="Racha" />
-        <StatCard icon={<Clock className="text-blue-500" />} value={totalMinutes} label="Min totales" />
-        <StatCard icon={<Dumbbell className="text-green-500" />} value={history.length} label="Entrenos" />
+        <StatCard icon={<Flame size={24} className="text-orange-500" />} value={streak} label="Racha" />
+        <StatCard icon={<Clock size={24} className="text-blue-500" />} value={totalMinutes} label="Min totales" />
+        <StatCard icon={<Dumbbell size={24} className="text-green-500" />} value={history.length} label="Entrenos" />
       </div>
 
       {/* Quick Start Section */}
       <section className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Inicio rápido</h2>
-          <button onClick={onNavigateToWorkouts} className="text-brand text-sm font-bold flex items-center gap-1">
-            Ver todos <ChevronRight size={16} />
+          <button 
+            onClick={onNavigateToWorkouts} 
+            className="bg-white/5 hover:bg-white/10 text-brand text-xs font-bold px-4 py-2 rounded-full flex items-center gap-1 transition-all border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] active:scale-95"
+          >
+            Ver todos <ChevronRight size={14} />
           </button>
         </div>
-        <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-6 px-6">
-          {WORKOUT_TEMPLATES.slice(0, 3).map(workout => (
+        <div className="grid gap-4">
+          {templates.map(workout => (
             <motion.div
               key={workout.id}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onStartWorkout(workout.id)}
-              className="min-w-[240px] bg-card-dark p-5 rounded-[2rem] space-y-4 cursor-pointer relative overflow-hidden group"
+              className="bg-card-dark p-5 rounded-[2rem] flex items-center gap-4 cursor-pointer relative overflow-hidden group border border-white/5"
             >
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Dumbbell size={80} />
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Dumbbell size={60} />
               </div>
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-brand">
-                <Play size={24} fill="currentColor" />
+              <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 shadow-lg relative">
+                <img src={workout.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <Play size={20} className="text-white fill-white" />
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold">{workout.name}</h3>
-                <p className="text-sm text-gray-500">{workout.duration} min • {workout.exercises.length} ejercicios</p>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold">{workout.name}</h3>
+                <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                  <span className="flex items-center gap-1"><Clock size={12} /> {workout.duration} min</span>
+                  <span className="flex items-center gap-1"><Dumbbell size={12} /> {workout.exercises.length} ej.</span>
+                </div>
               </div>
               <div className={cn(
-                "inline-block px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
+                "px-3 py-1 rounded-lg text-[10px] font-bold uppercase shrink-0",
                 workout.difficulty === 'Principiante' ? "bg-green-500/20 text-green-500" :
                 workout.difficulty === 'Intermedio' ? "bg-blue-500/20 text-blue-500" :
                 "bg-red-500/20 text-red-500"
@@ -116,14 +125,28 @@ export const Home: React.FC<HomeProps> = ({ onNavigateToWorkouts, onStartWorkout
       {/* Last Workout */}
       {lastWorkout && (
         <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Último entreno</h2>
-          <div className="bg-card-dark p-6 rounded-[2rem] flex items-center gap-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Último entreno</h2>
+            <button 
+              onClick={() => {
+                // Assuming we can navigate to history, but for now let's just use a placeholder or navigation if available
+                // If onNavigateToHistory is not in props, we might need to add it or just keep it as a UI element
+              }} 
+              className="bg-white/5 hover:bg-white/10 text-brand text-xs font-bold px-4 py-2 rounded-full flex items-center gap-1 transition-all border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] active:scale-95"
+            >
+              Ver historial <ChevronRight size={14} />
+            </button>
+          </div>
+          <div className="bg-card-dark p-6 rounded-[2rem] flex items-center gap-4 border border-white/5">
             <div className="w-16 h-16 bg-brand/10 rounded-2xl flex items-center justify-center text-brand">
               <Dumbbell size={32} />
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-lg">{lastWorkout.name}</h3>
-              <p className="text-sm text-gray-500">{formatDuration(lastWorkout.duration)} • {lastWorkout.exercises.length} ejercicios</p>
+              <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                <span className="flex items-center gap-1"><Clock size={14} /> {formatDuration(lastWorkout.duration)}</span>
+                <span className="flex items-center gap-1"><Dumbbell size={14} /> {lastWorkout.exercises.length}</span>
+              </div>
             </div>
             <ChevronRight className="text-gray-600" />
           </div>
@@ -134,9 +157,13 @@ export const Home: React.FC<HomeProps> = ({ onNavigateToWorkouts, onStartWorkout
 };
 
 const StatCard: React.FC<{ icon: React.ReactNode; value: number | string; label: string }> = ({ icon, value, label }) => (
-  <div className="bg-card-dark p-4 rounded-3xl flex flex-col items-center justify-center space-y-2">
-    {icon}
-    <span className="text-2xl font-bold">{value}</span>
-    <span className="text-[10px] text-gray-500 uppercase font-bold">{label}</span>
+  <div className="bg-card-dark p-5 rounded-[2rem] flex flex-col items-center justify-center space-y-3 border border-white/5 shadow-xl">
+    <div className="p-3 bg-white/5 rounded-2xl">
+      {icon}
+    </div>
+    <div className="text-center">
+      <span className="text-2xl font-bold block">{value}</span>
+      <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{label}</span>
+    </div>
   </div>
 );

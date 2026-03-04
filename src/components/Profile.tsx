@@ -1,17 +1,51 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { useApp } from '../store';
 import { UserProfile } from '../types';
-import { User, Phone, Calendar, Ruler, Weight, Target, Save, Edit2 } from 'lucide-react';
+import { User, Phone, Calendar, Ruler, Weight, Target, Save, Edit2, Sparkles, Loader2, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../utils';
+import { generateExerciseImage } from '../services/geminiService';
 
 export const Profile: React.FC = () => {
-  const { profile, setProfile, history } = useApp();
+  const { profile, setProfile, history, templates, updateExerciseImage } = useApp();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UserProfile>(profile);
+  const [isRefreshingImages, setIsRefreshingImages] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
   const handleSave = () => {
     setProfile(formData);
     setIsEditing(false);
+  };
+
+  const handleRefreshAllImages = async () => {
+    if (isRefreshingImages) return;
+    
+    const allExercises = templates.flatMap(t => t.exercises);
+    const uniqueExercises = Array.from(new Map(allExercises.map(ex => [ex.name, ex])).values());
+    
+    setIsRefreshingImages(true);
+    setRefreshProgress({ current: 0, total: uniqueExercises.length });
+
+    for (let i = 0; i < uniqueExercises.length; i++) {
+      const ex = uniqueExercises[i];
+      try {
+        const newUrl = await generateExerciseImage(ex.name, ex.muscleGroup);
+        // Find all instances of this exercise across all templates and update them
+        templates.forEach(t => {
+          t.exercises.forEach(te => {
+            if (te.name === ex.name) {
+              updateExerciseImage(te.id, newUrl);
+            }
+          });
+        });
+      } catch (error) {
+        console.error(`Failed to refresh image for ${ex.name}:`, error);
+      }
+      setRefreshProgress(prev => ({ ...prev, current: i + 1 }));
+    }
+    
+    setIsRefreshingImages(false);
   };
 
   const totalMinutes = Math.floor(history.reduce((acc, s) => acc + s.duration, 0) / 60);
@@ -119,6 +153,47 @@ export const Profile: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* AI Tools Section */}
+      <div className="space-y-6">
+        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Herramientas de IA</h3>
+        <div className="bg-card-dark p-6 rounded-[32px] border border-white/5 space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-brand/10 rounded-2xl text-brand">
+              <Sparkles size={24} />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-lg">Mejorar Fotografías</h4>
+              <p className="text-sm text-gray-500">Genera imágenes cinematográficas ultra-realistas para todos los ejercicios usando Gemini 2.5 Flash.</p>
+            </div>
+          </div>
+          
+          {isRefreshingImages ? (
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                <span className="text-brand">Procesando...</span>
+                <span className="text-gray-500">{refreshProgress.current} / {refreshProgress.total}</span>
+              </div>
+              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-brand"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(refreshProgress.current / refreshProgress.total) * 100}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-600 text-center italic">Esto puede tardar unos minutos. No cierres la aplicación.</p>
+            </div>
+          ) : (
+            <button
+              onClick={handleRefreshAllImages}
+              className="w-full bg-white/5 hover:bg-brand/10 text-white hover:text-brand border border-white/10 hover:border-brand/30 font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2"
+            >
+              <ImageIcon size={20} />
+              Actualizar todas las fotos
+            </button>
+          )}
         </div>
       </div>
 

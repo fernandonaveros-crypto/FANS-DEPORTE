@@ -1,11 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AppState, UserProfile, WorkoutSession } from './types';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { AppState, UserProfile, WorkoutSession, WorkoutTemplate } from './types';
+import { WORKOUT_TEMPLATES } from './data';
 
 interface AppContextType extends AppState {
   setProfile: (profile: UserProfile) => void;
   addHistory: (session: WorkoutSession) => void;
   setActiveSession: (session: WorkoutSession | null) => void;
   updateActiveSession: (session: WorkoutSession) => void;
+  updateExerciseImage: (exerciseId: string, newImageUrl: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -27,7 +29,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure templates are present and merge new ones from data.ts
+        if (!parsed.templates) {
+          parsed.templates = WORKOUT_TEMPLATES;
+        } else {
+          // Merge new templates that might have been added to data.ts
+          const existingIds = new Set(parsed.templates.map((t: any) => t.id));
+          const newTemplates = WORKOUT_TEMPLATES.filter(t => !existingIds.has(t.id));
+          if (newTemplates.length > 0) {
+            parsed.templates = [...parsed.templates, ...newTemplates];
+          }
+        }
+        return parsed;
       } catch (e) {
         console.error('Failed to parse saved state', e);
       }
@@ -36,6 +50,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       profile: DEFAULT_PROFILE,
       history: [],
       activeSession: null,
+      templates: WORKOUT_TEMPLATES,
     };
   });
 
@@ -43,32 +58,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const setProfile = (profile: UserProfile) => {
+  const setProfile = useCallback((profile: UserProfile) => {
     setState((prev) => ({ ...prev, profile }));
-  };
+  }, []);
 
-  const addHistory = (session: WorkoutSession) => {
+  const addHistory = useCallback((session: WorkoutSession) => {
     setState((prev) => ({ ...prev, history: [session, ...prev.history] }));
-  };
+  }, []);
 
-  const setActiveSession = (session: WorkoutSession | null) => {
+  const setActiveSession = useCallback((session: WorkoutSession | null) => {
     setState((prev) => ({ ...prev, activeSession: session }));
-  };
+  }, []);
 
-  const updateActiveSession = (session: WorkoutSession) => {
+  const updateActiveSession = useCallback((session: WorkoutSession) => {
     setState((prev) => ({ ...prev, activeSession: session }));
-  };
+  }, []);
+
+  const updateExerciseImage = useCallback((exerciseId: string, newImageUrl: string) => {
+    setState((prev) => ({
+      ...prev,
+      templates: prev.templates.map((template) => ({
+        ...template,
+        exercises: template.exercises.map((ex) =>
+          ex.id === exerciseId ? { ...ex, image: newImageUrl } : ex
+        ),
+      })),
+    }));
+  }, []);
+
+  const value = useMemo(() => ({
+    ...state,
+    setProfile,
+    addHistory,
+    setActiveSession,
+    updateActiveSession,
+    updateExerciseImage,
+  }), [state, setProfile, addHistory, setActiveSession, updateActiveSession, updateExerciseImage]);
 
   return (
-    <AppContext.Provider
-      value={{
-        ...state,
-        setProfile,
-        addHistory,
-        setActiveSession,
-        updateActiveSession,
-      }}
-    >
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );
